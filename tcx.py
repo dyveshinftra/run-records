@@ -39,6 +39,8 @@ class Record:
                 if not best_time_diff or time_diff < best_time_diff:
                     best_time_diff = time_diff
                 begin_idx += 1
+        if not best_time_diff:
+            return best_time_diff
         s, ms = divmod(best_time_diff, 1)
         s = int(s)
         ms = int(ms * 1000000)
@@ -88,23 +90,22 @@ for tcx_file in entries:
                 record = Record(
                     activity.findall("tcx:Lap/tcx:Track/tcx:Trackpoint", ns)
                 )
-                
-                for x in distances:
-                    new_record = record.distance(x)
-                    if x not in records or records.get(x) > new_record:
-                        records[x] = new_record
 
                 sheet1.write(0, file_number + 3, f"run {file_number + 1}")
-                for i in range(len(distances)):
-                    record = records[distances[i]]
-                    sheet1.write(i + 1, file_number + 3, record)
+                for i, x in enumerate(distances):
+                    new_record = record.distance(x)
+                    if new_record and (x not in records or records.get(x) > new_record):
+                        records[x] = new_record
+                        if x > 1700:
+                            print(x, new_record, x not in records, records)
+                    sheet1.write(i + 1, file_number + 3, new_record)
+                
     file_number += 1
 
 sheet1.write(0, 1, "records")
 
 for i in range(len(distances)):
     sheet1.write(i + 1, 0, str(distances[i]))
-
-    sheet1.write(i + 1, 1, records[distances[i]])
+    sheet1.write(i + 1, 1, records.get(distances[i], '-'))
 
 wb.save("records.xls")
