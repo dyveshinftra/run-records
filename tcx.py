@@ -31,6 +31,17 @@ class Record:
             )
             if distance_diff < distance:
                 end_idx += 1
+                if end_idx < len(self.track_points):
+                    distance_diff2 = self.get_distance(end_idx) - self.get_distance(
+                        begin_idx
+                    )
+                    if distance_diff2 > distance:
+                        time_diff = (
+                            (self.get_time(end_idx - 1) - self.get_time(begin_idx)).seconds
+                            * distance
+                        ) / distance_diff
+                        if not best_time_diff or time_diff < best_time_diff:
+                            best_time_diff = time_diff
             else:
                 time_diff = (
                     (self.get_time(end_idx) - self.get_time(begin_idx)).seconds
@@ -51,9 +62,11 @@ class Record:
 
 try:
     entries = os.listdir(sys.argv[1])
+    for tcx_file in entries:
+        tcx_file = os.path.join(sys.argv[1], tcx_file)
 except NotADirectoryError:
     # for Python3
-    entries = [sys.argv[1]]
+    entries = [os.path.join(".", sys.argv[1])]
 records = {}
 wb = Workbook()
 
@@ -75,9 +88,7 @@ distances = [
     20000,
 ]
 for tcx_file in entries:
-    tcx_file = os.path.join(sys.argv[1], tcx_file)
     if os.path.isfile(tcx_file) and tcx_file.endswith(".tcx"):
-        print(tcx_file)
         tcx_file = ET.parse(tcx_file)
         root = tcx_file.getroot()
         ns = {
@@ -95,9 +106,7 @@ for tcx_file in entries:
                 for i, x in enumerate(distances):
                     new_record = record.distance(x)
                     if new_record and (x not in records or records.get(x) > new_record):
-                        records[x] = new_record
-                        if x > 1700:
-                            print(x, new_record, x not in records, records)
+                        records[x] = new_record 
                     sheet1.write(i + 1, file_number + 3, new_record)
                 
     file_number += 1
@@ -105,7 +114,10 @@ for tcx_file in entries:
 sheet1.write(0, 1, "records")
 
 for i in range(len(distances)):
+    distance = str(distances[i])
+    total_record = records.get(distances[i], '-')
     sheet1.write(i + 1, 0, str(distances[i]))
-    sheet1.write(i + 1, 1, records.get(distances[i], '-'))
+    sheet1.write(i + 1, 1, total_record)
+    print(f"{distance}:    {total_record}")
 
 wb.save("records.xls")
