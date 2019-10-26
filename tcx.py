@@ -5,13 +5,6 @@ import sys
 import xml.etree.ElementTree as ET
 from xlwt import Workbook
 
-try:
-    # for Python2
-    from Tkinter import *  # notice capitalized T in Tkinter
-except ImportError:
-    # for Python3
-    from tkinter import *  # notice lowercase 't' in tkinter here
-
 
 class Record:
     def __init__(self, track_points):
@@ -38,6 +31,17 @@ class Record:
             )
             if distance_diff < distance:
                 end_idx += 1
+                if end_idx < len(self.track_points):
+                    distance_diff2 = self.get_distance(end_idx) - self.get_distance(
+                        begin_idx
+                    )
+                    if distance_diff2 > distance:
+                        time_diff = (
+                            (self.get_time(end_idx - 1) - self.get_time(begin_idx)).seconds
+                            * distance
+                        ) / distance_diff
+                        if not best_time_diff or time_diff < best_time_diff:
+                            best_time_diff = time_diff
             else:
                 time_diff = (
                     (self.get_time(end_idx) - self.get_time(begin_idx)).seconds
@@ -46,6 +50,8 @@ class Record:
                 if not best_time_diff or time_diff < best_time_diff:
                     best_time_diff = time_diff
                 begin_idx += 1
+        if not best_time_diff:
+            return best_time_diff
         s, ms = divmod(best_time_diff, 1)
         s = int(s)
         ms = int(ms * 1000000)
@@ -56,20 +62,33 @@ class Record:
 
 try:
     entries = os.listdir(sys.argv[1])
+    for tcx_file in entries:
+        tcx_file = os.path.join(sys.argv[1], tcx_file)
 except NotADirectoryError:
     # for Python3
-    entries = [sys.argv[1]]
+    entries = [os.path.join(".", sys.argv[1])]
 records = {}
 wb = Workbook()
 
 # add_sheet is used to create sheet.
 sheet1 = wb.add_sheet("Sheet 1")
 file_number = 0
+distances = [
+    100,
+    200,
+    400,
+    800,
+    1000,
+    1500,
+    1609.344,
+    2000,
+    3000,
+    5000,
+    10000,
+    20000,
+]
 for tcx_file in entries:
-    print(sys.argv[1], tcx_file)
-    tcx_file = os.path.join(sys.argv[1], tcx_file)
     if os.path.isfile(tcx_file) and tcx_file.endswith(".tcx"):
-        print(tcx_file)
         tcx_file = ET.parse(tcx_file)
         root = tcx_file.getroot()
         ns = {
@@ -82,44 +101,23 @@ for tcx_file in entries:
                 record = Record(
                     activity.findall("tcx:Lap/tcx:Track/tcx:Trackpoint", ns)
                 )
-                distances = [
-                    100,
-                    200,
-                    400,
-                    800,
-                    1000,
-                    1500,
-                    1609.344,
-                    2000,
-                    3000,
-                    5000,
-                    10000,
-                    20000,
-                ]
-                for x in distances:
-                    new_record = record.distance(x)
-                    if x not in records or record.get(x) > new_record:
-                        records[x] = new_record
 
                 sheet1.write(0, file_number + 3, f"run {file_number + 1}")
-                for i in range(len(distances)):
-                    record = records[distances[i]]
-                    sheet1.write(i + 1, file_number + 3, record)
+                for i, x in enumerate(distances):
+                    new_record = record.distance(x)
+                    if new_record and (x not in records or records.get(x) > new_record):
+                        records[x] = new_record 
+                    sheet1.write(i + 1, file_number + 3, new_record)
+                
     file_number += 1
 
-root = Tk()
 sheet1.write(0, 1, "records")
 
 for i in range(len(distances)):
-    b1 = Entry(root)
-    b1.grid(row=i, column=0)
-    b1.insert(0, str(distances[i]))
+    distance = str(distances[i])
+    total_record = records.get(distances[i], '-')
     sheet1.write(i + 1, 0, str(distances[i]))
-
-    b2 = Entry(root)
-    b2.grid(row=i, column=1)
-    b2.insert(0, records[distances[i]])
-    sheet1.write(i + 1, 1, records[distances[i]])
+    sheet1.write(i + 1, 1, total_record)
+    print(f"{distance}:    {total_record}")
 
 wb.save("records.xls")
-mainloop()
