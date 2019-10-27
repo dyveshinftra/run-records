@@ -114,7 +114,6 @@ for tcx_file in entries:
                     if new_record and (x not in records or records.get(x) > new_record):
                         records[x] = new_record 
                     sheet1.write(i + 1, file_number + 3, new_record)
-                
 
 sheet1.write(0, 1, "records")
 
