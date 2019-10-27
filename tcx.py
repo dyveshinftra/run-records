@@ -3,7 +3,9 @@ import datetime
 import os
 import sys
 import xml.etree.ElementTree as ET
+from xlutils.copy import copy # http://pypi.python.org/pypi/xlutils
 from xlwt import Workbook
+from xlrd import open_workbook
 
 
 class Record:
@@ -68,11 +70,12 @@ except NotADirectoryError:
     # for Python3
     entries = [os.path.join(".", sys.argv[1])]
 records = {}
-wb = Workbook()
-
+r_wb = open_workbook("records.xls")
+wb = copy(r_wb)
 # add_sheet is used to create sheet.
-sheet1 = wb.add_sheet("Sheet 1")
-file_number = 0
+r_sheet1 = r_wb.sheet_by_index(0)
+sheet1 = wb.get_sheet(0)
+file_number = -1
 distances = [
     100,
     200,
@@ -89,35 +92,40 @@ distances = [
 ]
 for tcx_file in entries:
     if os.path.isfile(tcx_file) and tcx_file.endswith(".tcx"):
+        file_number += 1
         tcx_file = ET.parse(tcx_file)
         root = tcx_file.getroot()
         ns = {
             "tcx": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"
         }
-
         # check all activities for any running activity
         for activity in root.findall("tcx:Activities/tcx:Activity", ns):
+            record_id = activity.findall("tcx:Id", ns)[0].text
+            print(r_sheet1.row(0)[file_number + 3].value)
+            if record_id == r_sheet1.row(0)[file_number + 3].value:
+                continue
             if activity.get("Sport") == "Running":
                 record = Record(
                     activity.findall("tcx:Lap/tcx:Track/tcx:Trackpoint", ns)
                 )
-
-                sheet1.write(0, file_number + 3, f"run {file_number + 1}")
+                sheet1.write(0, file_number + 3, record_id)
                 for i, x in enumerate(distances):
                     new_record = record.distance(x)
                     if new_record and (x not in records or records.get(x) > new_record):
                         records[x] = new_record 
                     sheet1.write(i + 1, file_number + 3, new_record)
                 
-    file_number += 1
 
 sheet1.write(0, 1, "records")
 
 for i in range(len(distances)):
     distance = str(distances[i])
-    total_record = records.get(distances[i], '-')
-    sheet1.write(i + 1, 0, str(distances[i]))
-    sheet1.write(i + 1, 1, total_record)
+    total_record = records.get(distances[i])
+    # sheet1.write(i + 1, 0, str(distances[i]))
+    print(r_sheet1.row(i + 1)[1].value)
+    r_value = r_sheet1.row(i + 1)[1].value
+    if (total_record and (r_value == "-" or total_record < r_value)):
+        sheet1.write(i + 1, 1, total_record or "-")
     print(f"{distance}:    {total_record}")
 
 wb.save("records.xls")
