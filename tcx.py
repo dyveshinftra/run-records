@@ -101,7 +101,6 @@ for tcx_file in entries:
         # check all activities for any running activity
         for activity in root.findall("tcx:Activities/tcx:Activity", ns):
             record_id = activity.findall("tcx:Id", ns)[0].text
-            print(r_sheet1.row(0)[file_number + 3].value)
             if record_id == r_sheet1.row(0)[file_number + 3].value:
                 continue
             if activity.get("Sport") == "Running":
@@ -121,10 +120,13 @@ for i in range(len(distances)):
     distance = str(distances[i])
     total_record = records.get(distances[i])
     # sheet1.write(i + 1, 0, str(distances[i]))
-    print(r_sheet1.row(i + 1)[1].value)
     r_value = r_sheet1.row(i + 1)[1].value
     if (total_record and (r_value == "-" or total_record < r_value)):
         sheet1.write(i + 1, 1, total_record or "-")
-    print(f"{distance}:    {total_record}")
+        print(f"{distance}:    \t{total_record}")
+    elif r_value != "-":
+        print(f"{distance}:    \t{r_value}")
+    else:
+        print(f"{distance}:    \t-")
 
 wb.save("records.xls")
