@@ -31,24 +31,18 @@ class Record:
             distance_diff = self.get_distance(end_idx) - self.get_distance(
                 begin_idx
             )
+            previous_distance_diff = self.get_distance(end_idx - 1) - self.get_distance(
+                begin_idx
+            )
             if distance_diff < distance:
                 end_idx += 1
-                if end_idx < len(self.track_points):
-                    distance_diff2 = self.get_distance(end_idx) - self.get_distance(
-                        begin_idx
-                    )
-                    if distance_diff2 > distance:
-                        time_diff = (
-                            (self.get_time(end_idx - 1) - self.get_time(begin_idx)).seconds
-                            * distance
-                        ) / distance_diff
-                        if not best_time_diff or time_diff < best_time_diff:
-                            best_time_diff = time_diff
             else:
+                # time_diff = ((self.get_time(end_idx) - self.get_time(begin_idx)).seconds * distance) / distance_diff
                 time_diff = (
-                    (self.get_time(end_idx) - self.get_time(begin_idx)).seconds
-                    * distance
-                ) / distance_diff
+                    (self.get_time(end_idx - 1) - self.get_time(begin_idx)).seconds
+                    + (self.get_time(end_idx) - self.get_time(end_idx - 1)).seconds
+                    * (distance - previous_distance_diff) / (distance_diff - previous_distance_diff)
+                )
                 if not best_time_diff or time_diff < best_time_diff:
                     best_time_diff = time_diff
                 begin_idx += 1
@@ -70,11 +64,16 @@ except NotADirectoryError:
     # for Python3
     entries = [os.path.join(".", sys.argv[1])]
 records = {}
-r_wb = open_workbook("records.xls")
-wb = copy(r_wb)
-# add_sheet is used to create sheet.
-r_sheet1 = r_wb.sheet_by_index(0)
-sheet1 = wb.get_sheet(0)
+try:
+    r_wb = open_workbook("run_records.xls")
+    wb = copy(r_wb)
+    r_sheet1 = r_wb.sheet_by_index(0)
+    sheet1 = wb.get_sheet(0)
+except FileNotFoundError:
+    wb = Workbook()
+    sheet1 = wb.add_sheet("Sheet 1")
+    r_sheet1 = None
+
 file_number = -1
 distances = [
     100,
@@ -101,7 +100,7 @@ for tcx_file in entries:
         # check all activities for any running activity
         for activity in root.findall("tcx:Activities/tcx:Activity", ns):
             record_id = activity.findall("tcx:Id", ns)[0].text
-            if record_id == r_sheet1.row(0)[file_number + 3].value:
+            if r_sheet1 and file_number + 3 < len(r_sheet1.row(0)) and record_id == r_sheet1.row(0)[file_number + 3].value:
                 continue
             if activity.get("Sport") == "Running":
                 record = Record(
@@ -119,8 +118,11 @@ sheet1.write(0, 1, "records")
 for i in range(len(distances)):
     distance = str(distances[i])
     total_record = records.get(distances[i])
-    # sheet1.write(i + 1, 0, str(distances[i]))
-    r_value = r_sheet1.row(i + 1)[1].value
+    sheet1.write(i + 1, 0, str(distances[i]))
+    if r_sheet1:
+        r_value = r_sheet1.row(i + 1)[1].value
+    else:
+        r_value = "-"
     if (total_record and (r_value == "-" or total_record < r_value)):
         sheet1.write(i + 1, 1, total_record or "-")
         print(f"{distance}:    \t{total_record}")
@@ -129,4 +131,4 @@ for i in range(len(distances)):
     else:
         print(f"{distance}:    \t-")
 
-wb.save("records.xls")
+wb.save("run_records.xls")
