@@ -13,4 +13,4 @@ trkseg = ET.SubElement(trk, 'trkseg')
 for lat, lon in json.load(open('streams.json'))['latlng']:
     ET.SubElement(trkseg, 'trkpt', {'lat':str(lat),' lon':str(lon)})
 
-open('streams.gpx', 'w').write(ET.tostring(gpx))
+open('streams.gpx', 'w').write(ET.tostring(gpx, encoding="unicode"))
