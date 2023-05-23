@@ -1,9 +1,12 @@
 """
 Export Komoot tour/route when region is locked.
 
-How to find second link from first?
-https://www.komoot.com/tour/1130340804/edit
-https://www.komoot.com/api/routing/tour?query=d06Av_adgBDAaM%3DFxhcBIBzvpMIxK_tQPCpsAIIqVQ27IEewVkKe8OXGICSwWBOHTDg3IVrCsTPd-RlJJH9QSoRSGD7KiZDGxc5EV8krCp-hSIjhJWAr9UuECySsDl3JkMkTveVviM2-bJ3jGIGC7oxP8zQTGPrHg0JPgKfeefa0geBTvGQQ0dUXGeiseoqfe8-D-A%3D&_embedded=coordinates%2Cway_types%2Csurfaces%2Cdirections
+The tour/route must be planned in your account!
+
+Steps to follow:
+1.  Go to tour/route e.g.: https://www.komoot.com/nl-nl/tour/1130340804
+2.  View source and search for query\":\" to find the query ID
+3.  Save query https://www.komoot.com/api/routing/tour?query=<QUERY D>&_embedded=coordinates%2Cway_types%2Csurfaces%2Cdirections
 """
 
 import json
